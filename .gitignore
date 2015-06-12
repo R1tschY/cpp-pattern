@@ -1,8 +1,17 @@
+# Backups
+*~
+*.bak
+*.tmp
+*.swp
+
 # Compiled Object files
 *.slo
 *.lo
 *.o
 *.obj
+
+# Dependency Files
+*.o.d
 
 # Precompiled Headers
 *.gch
@@ -12,9 +21,6 @@
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
 
 # Compiled Static libraries
 *.lai
@@ -26,3 +32,8 @@
 *.exe
 *.out
 *.app
+
+tests/CodePatternsTests
+
+# Eclipse
+.settings
