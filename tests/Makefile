@@ -51,3 +51,4 @@ clean:
 	$(RM) -rf *.o *.o.d $(PROGRAM)
 	
 -include $(wildcard *.o.d)
+-include $(wildcard Classes/*.o.d)

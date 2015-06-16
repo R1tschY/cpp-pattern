@@ -16,17 +16,17 @@
 //#include <boost/range/adaptors.hpp>
 #include <boost/range/algorithm.hpp>
 
-template<typename T, typename Sig>
+template<typename Sig>
 class AdvancedFactory;
 
-template<typename T, typename Ret, typename ...Args>
-class AdvancedFactory<T, Ret(Args...)> {
+template<typename Ret, typename ...Args>
+class AdvancedFactory<Ret(Args...)> {
 public:
-  static_assert(std::is_constructible<T, Ret>::value, "");
   static_assert(std::is_constructible<bool, Ret>::value, "");
 
-  using ValueType = T;
   using CreatingFunc = Ret(*)(Args...); // optional: std::function<T(Args&&...)>;
+  using ReturnType = Ret;
+  using CallingArgs = std::tuple<Args...>;
 
   void registerCanidate(CreatingFunc creating_func/*, int priority*/)
   {
@@ -39,56 +39,44 @@ public:
     registerCanidate(U::create /*, T::priority*/);
   }
 
-  T create(Args... args)
+  ReturnType create(Args... args)
   {
     for (auto&& entry : registered_canidates_) {
-      auto&& canidate = entry.creating_func(args...);
-      if (canidate) {
-        return T(std::move(canidate));
-      }
+      ReturnType result = entry.creating_func(args...);
+      if (result) return std::move(result);
     }
 
-    return T();
+    return ReturnType();
   }
-  
-  T createOrThrow(Args... args)
+
+  template<typename Exception = std::invalid_argument>
+  ReturnType createOrThrow(Args... args)
   {
-    for (auto&& entry : registered_canidates_) {
-      auto&& canidate = entry.creating_func(args...);
-      if (canidate) {
-        return T(std::move(canidate));
-      }
-    }
-
-    throw std::runtime_error();
+    return createOr(args..., []() -> ReturnType {
+      throw Exception("invalid argument to factory");
+    });
   }
-  
-  T createOrDefault(Args... args, T dflt)
+
+  ReturnType createOrDefault(Args... args, const ReturnType& dflt)
   {
-    for (auto&& entry : registered_canidates_) {
-      auto&& canidate = entry.creating_func(args...);
-      if (canidate) {
-        return T(std::move(canidate));
-      }
-    }
-
-    return dflt;
+    return createOr(args..., [&]() -> ReturnType {
+      return dflt;
+    });
   }
-  
+
   template<typename Func>
-  T createOrFallback(Args... args, Func func)
+  ReturnType createOr(Args... args, Func func)
   {
     for (auto&& entry : registered_canidates_) {
       auto&& canidate = entry.creating_func(args...);
-      if (canidate) {
-        return T(std::move(canidate));
-      }
+      if (canidate)
+        return std::move(canidate);
     }
 
     return func();
   }
 
-  /*T create(Args&&... args)
+  /*ReturnType create(Args&&... args)
   {
     using namespace boost::adaptors;
 
@@ -141,12 +129,14 @@ private:
 //   return obj->id();
 // }
 
+template<typename FactoryTag, typename Sig>
+class StaticAdvancedFactory;
 
-template<typename FactoryTag, typename T, typename ...Args>
-class StaticAdvancedFactory {
+template<typename FactoryTag, typename Ret, typename ...Args>
+class StaticAdvancedFactory<FactoryTag, Ret(Args...)> {
   StaticAdvancedFactory() { }
 public:
-  using CreatingFunc = typename AdvancedFactory<T, Args...>::CreatingFunc;
+  using CreatingFunc = typename AdvancedFactory<Ret(Args...)>::CreatingFunc;
 
   static void registerCanidate(CreatingFunc creating_func/*, int priority*/)
   {
@@ -159,13 +149,14 @@ public:
     get().registerCanidate(U::create /*, T::priority*/);
   }
 
-  T create(Args&&... args)
+  template<typename ...FuncArgs>
+  Ret create(FuncArgs&&... args)
   {
-    return get().create(std::forward<Args>(args)...);
+    return get().create(std::forward<FuncArgs>(args)...);
   }
 
-  static AdvancedFactory<T, Args...>& get() {
-    static AdvancedFactory<T, Args...> instance;
+  static AdvancedFactory<Ret(Args...)>& get() {
+    static AdvancedFactory<Ret(Args...)> instance;
     return instance;
   }
 };
