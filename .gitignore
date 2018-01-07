@@ -35,5 +35,11 @@
 
 tests/CodePatternsTests
 
+# Code coverage
+test_coverage_report
+*.gcda
+*.gcno
+*.info
+
 # Eclipse
 .settings

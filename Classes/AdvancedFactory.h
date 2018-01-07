@@ -22,7 +22,7 @@ class AdvancedFactory;
 template<typename Ret, typename ...Args>
 class AdvancedFactory<Ret(Args...)> {
 public:
-  static_assert(std::is_constructible<bool, Ret>::value, "");
+  static_assert(std::is_constructible<bool, Ret>::value, "the return value have to be explicit convertible to bool");
 
   using CreatingFunc = Ret(*)(Args...); // optional: std::function<T(Args&&...)>;
   using ReturnType = Ret;
